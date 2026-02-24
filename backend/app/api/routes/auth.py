@@ -28,14 +28,14 @@ def register(request: LoginRequest, db: Session=Depends(get_db)):
     validate_password(request.password)
     Create_user(db,request)
     token = authenticate_user(db,request.email,request.password)
-    return {"access_token": token}
+    return token
 
 @router.post("/login", response_model=Token)
 def login(request: LoginRequest, db: Session=Depends(get_db)):
     token = authenticate_user(db, request.email, request.password)
     if not token:
         raise AppException("Email ou mot de passe incorrect")
-    return {"access_token": token}
+    return token
 
 @router.get("/me", response_model=UserRead)
 def read_users_me(current_user: UserRead = Depends(get_user_by_email)):
