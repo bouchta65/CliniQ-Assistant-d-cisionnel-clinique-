@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: cliniq_backend
+    ports:
+      - "8009:8000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - mlflow
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build: ./frontend
+    container_name: cliniq_frontend
+    ports:
+      - "8509:8501"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15
+    container_name: cliniq_postgres
+    environment:
+      POSTGRES_DB: cliniq
+      POSTGRES_USER: cliniq_user
+      POSTGRES_PASSWORD: cliniq_pass
+    ports:
+      - "5439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mlflow:
+    build: ./mlflow
+    container_name: cliniq_mlflow
+    ports:
+      - "5009:5000"
+    volumes:
+      - mlflow_data:/mlflow
+
+  prometheus:
+    image: prom/prometheus
+    container_name: cliniq_prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9099:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana
+    container_name: cliniq_grafana
+    ports:
+      - "3009:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  mlflow_data:
+  grafana_data:
