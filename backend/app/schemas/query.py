@@ -1,16 +1,16 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
-from datetime import date
+from datetime import datetime
 
-class Query(BaseModel):
+class QueryCreate(BaseModel):
     query_text: str
-    reponse: str
-    created_at: Optional[date] = None  
+    user_id: int
 
-class QueryCreate(Query):
-    pass  
-
-class QueryRead(Query):
+class QueryRead(BaseModel):
     id: int
+    query: str
+    response: str
+    user_id: int
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
