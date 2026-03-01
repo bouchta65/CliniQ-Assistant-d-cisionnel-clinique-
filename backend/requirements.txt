@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-pydantic
+pydantic[email]
 pydantic-settings
 python-jose
 passlib[bcrypt]
@@ -11,3 +11,8 @@ chromadb
 mlflow
 prometheus-client
 python-dotenv
+ollama
+sentence-transformers
+rank-bm25
+deepeval
+google-genai

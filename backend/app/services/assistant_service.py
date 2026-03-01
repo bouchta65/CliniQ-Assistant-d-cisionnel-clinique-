@@ -1,34 +1,37 @@
 import ollama
 import os
+import mlflow
 from app.rag.retriever import hybrid_search
+from app.services.evaluator import evaluate
+
+mlflow.set_tracking_uri("http://mlflow:5000")
+mlflow.set_experiment("RAG_Pipeline")
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434")
 
-SYSTEM_PROMPT = """Tu es CliniQ, un assistant décisionnel clinique intelligent basé sur une architecture RAG optimisée.
+LLM_CONFIG = {
+    "model": "llama3",
+    "temperature": 0.0,
+    "top_p": 0.9,
+    "top_k": 40,
+    "num_predict": 2000
+}
 
-Ta mission :
-Fournir aux professionnels de santé des réponses précises, fiables et contextualisées issues des protocoles médicaux et de la documentation clinique fournie.
+SYSTEM_PROMPT = """
+Tu es CliniQ, Tu dois répondre UNIQUEMENT avec les informations du CONTEXTE ci-dessous.
 
 RÈGLES ABSOLUES:
-1. UTILISE UNIQUEMENT le texte du CONTEXTE - AUCUNE créativité, AUCUNE invention
-2. NE JAMAIS ajouter d'informations qui ne sont pas dans le contexte
-3. NE JAMAIS utiliser tes connaissances générales
-4. CITE ou REFORMULE exactement ce qui est écrit dans le contexte
-5. Si plusieurs informations sont pertinentes, LISTE-LES TOUTES
+1. COPIE INTÉGRALEMENT toutes les informations pertinentes du CONTEXTE
+2. NE RÉSUME PAS - donne TOUTES les informations disponibles
+3. NE JAMAIS ajouter d'informations qui ne sont pas dans le contexte
+4. NE JAMAIS utiliser tes connaissances générales
+5. Si plusieurs informations sont pertinentes, LISTE-LES TOUTES sans exception
 6. Si l'information n'est PAS dans le contexte: "Cette information n'est pas disponible dans ma documentation."
 
 CONTEXTE (5 documents trouvés - utilise TOUS ceux qui sont pertinents):
 {context}
 
 Question: {question}
-
-Tu dois répondre en utilisant UNIQUEMENT les informations présentes dans la section CONTEXTE ci-dessous.
-
-❗ Interdiction d’utiliser tes connaissances personnelles.
-❗ Interdiction d’ajouter des informations externes.
-❗ Interdiction de faire des suppositions.
-❗ Interdiction de compléter des informations manquantes.
-
 La réponse doit être rédigée sous forme de texte fluide et naturel, comme si elle venait d’un assistant intelligent.
 
 Commence toujours par :
@@ -46,24 +49,43 @@ Ensuite, rédige uniquement les informations disponibles dans le contexte, en co
 
 ⚠️ Ne jamais ajouter d’exemples, de causes possibles, ni de recommandations personnelles."""
 
-LLM_CONFIG = {
-    "model": "llama3",
-    "temperature": 0.1,
-    "top_p": 0.9,
-    "top_k": 40,
-    "num_predict": 200
-}
+def generate(question: str, evaluate: bool = False, k: int = 5) -> str:
+    chunks = hybrid_search(question, k) or []
+    retrieval_context = [c.get("content", "") for c in chunks]
+    context = "\n\n---\n\n".join(retrieval_context)
 
-def generate(question, k=5):
-    chunks = hybrid_search(question, k)
-    context = "\n\n---\n\n".join([c["content"] for c in chunks])
-    
     client = ollama.Client(host=OLLAMA_HOST)
+    full_prompt = SYSTEM_PROMPT.format(context=context, question=question)
+
     response = client.chat(
         model=LLM_CONFIG["model"],
-        messages=[{"role": "user", "content": SYSTEM_PROMPT.format(context=context, question=question)}],
-        options=LLM_CONFIG
+        messages=[
+            {"role": "system", "content": "Tu es un assistant clinique strict basé sur RAG."},
+            {"role": "user", "content": full_prompt}
+        ],
+        options={
+            "temperature": LLM_CONFIG["temperature"],
+            "top_p": LLM_CONFIG["top_p"],
+            "top_k": LLM_CONFIG["top_k"],
+            "num_predict": LLM_CONFIG["num_predict"]
+        }
     )
-    
-    answer = response["message"]["content"]
+
+    answer = response["message"]["content"].replace("\n", " ")
     return answer
+
+
+def generate_and_evaluate(question: str, k: int = 5):
+    with mlflow.start_run(run_name="rag_pipeline"):
+
+        mlflow.log_params(LLM_CONFIG)
+        mlflow.log_param("k", k)
+
+        chunks = hybrid_search(question, k) or []
+        answer = generate(question, k=k)
+
+        metrics = evaluate(question, answer, chunks, k=k)
+
+        return answer, metrics
+
+

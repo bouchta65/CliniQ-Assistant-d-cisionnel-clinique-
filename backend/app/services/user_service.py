@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from backend.app.schemas.user import UserCreate
-from backend.app.models.user import Users
-from backend.app.core.security import hash_password
+from app.schemas.user import UserCreate
+from app.models.user import Users
+from app.core.security import hash_password
 
 def Create_user(db:Session,user: UserCreate):
     try:
@@ -24,4 +24,14 @@ def get_user_by_id(db:Session, user_id:int):
 
 def get_user_by_email(db:Session, email:str):
     return db.query(Users).filter(Users.email == email).first()
-        
+
+def get_all_users(db: Session):
+    return db.query(Users).all()
+
+def delete_user(db: Session, user_id: int):
+    user = db.query(Users).filter(Users.id == user_id).first()
+    if not user:
+        return {"error": "User not found"}
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}

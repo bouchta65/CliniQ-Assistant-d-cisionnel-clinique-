@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta
-from backend.app.core.config import settings
+from app.core.config import settings
 from jose import jwt
 
 def hash_password(password: str):
