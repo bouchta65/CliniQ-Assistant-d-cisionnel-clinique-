@@ -26,8 +26,6 @@ def get_query_by_id(db: Session, query_id: int):
 
 def get_all_query(db: Session):
     return db.query(Query).all()
-    
-    
-    
-    
-    
+
+def get_queries_by_user_id(db: Session, user_id: int):
+    return db.query(Query).filter(Query.user_id == user_id).all()

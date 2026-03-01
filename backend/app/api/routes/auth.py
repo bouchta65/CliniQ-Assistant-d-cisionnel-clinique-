@@ -1,11 +1,13 @@
-from fastapi import APIRouter,Depends
-from backend.app.core.exceptions import AppException
+from fastapi import APIRouter, Depends, Header
+from app.core.exceptions import AppException
 import re
-from backend.app.core.database import get_db
-from backend.app.schemas.user import UserCreate,LoginRequest,Token,UserRead
+from app.core.database import get_db
+from app.schemas.user import UserCreate, LoginRequest, Token, UserRead
 from sqlalchemy.orm import Session
-from backend.app.services.user_service import Create_user,get_user_by_email
-from backend.app.services.auth_service import authenticate_user
+from app.services.user_service import Create_user, get_user_by_email, get_user_by_id
+from app.services.auth_service import authenticate_user
+from jose import jwt, JWTError
+from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -20,14 +22,14 @@ def validate_password(password):
         raise AppException("Le mot de passe doit contenir un chiffre")
     
     
-@router.post("/register")
-def register(request: LoginRequest, db: Session=Depends(get_db)):
-    token = authenticate_user(db,request.email,request.password)
-    if token:
+@router.post("/register", response_model=Token)
+def register(request: UserCreate, db: Session=Depends(get_db)):
+    existing_user = get_user_by_email(db, request.email)
+    if existing_user:
         raise AppException("Utilisateur déjà existant")
     validate_password(request.password)
-    Create_user(db,request)
-    token = authenticate_user(db,request.email,request.password)
+    Create_user(db, request)
+    token = authenticate_user(db, request.email, request.password)
     return token
 
 @router.post("/login", response_model=Token)
@@ -37,6 +39,25 @@ def login(request: LoginRequest, db: Session=Depends(get_db)):
         raise AppException("Email ou mot de passe incorrect")
     return token
 
-@router.get("/me", response_model=UserRead)
-def read_users_me(current_user: UserRead = Depends(get_user_by_email)):
-    return current_user
+@router.get("/me")
+def read_users_me(authorization: str = Header(None), db: Session = Depends(get_db)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise AppException("Token manquant")
+    token = authorization.split(" ")[1]
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise AppException("Token invalide")
+        user = get_user_by_id(db, int(user_id))
+        if not user:
+            raise AppException("Utilisateur non trouvé")
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "created_at": str(user.created_at)
+        }
+    except JWTError:
+        raise AppException("Token invalide ou expiré")

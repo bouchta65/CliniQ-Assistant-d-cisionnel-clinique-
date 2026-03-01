@@ -2,6 +2,13 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 import os
+import mlflow
+
+mlflow.set_tracking_uri("http://mlflow:5000")
+try:
+    mlflow.set_experiment("RAG_Retriever")
+except Exception:
+    pass
 
 DB_DIR = os.path.join(os.path.dirname(__file__), "../data/chroma_db")
 MODEL_NAME = "intfloat/multilingual-e5-base"
@@ -24,7 +31,7 @@ else:
 def hybrid_search(query, k=5, bm25_weight=0.3):
     if not docs:
         return []
-    
+
     query_embedding = model.encode([query])[0]
 
     semantic_results = collection.query(
@@ -51,10 +58,14 @@ def hybrid_search(query, k=5, bm25_weight=0.3):
     results = []
     for doc_id in top_ids:
         idx = ids.index(doc_id)
+        full_metadata = metas[idx].copy()
+        full_metadata["id"] = doc_id
+        full_metadata["score"] = scores[doc_id]
+        
         results.append({
             "id": doc_id,
             "content": docs[idx],
-            "metadata": metas[idx],
+            "metadata": full_metadata,
             "score": scores[doc_id]
         })
 
