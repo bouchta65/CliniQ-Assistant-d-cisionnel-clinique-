@@ -28,6 +28,7 @@ else:
     tokenized_docs = [doc.lower().split() for doc in docs]
     bm25 = BM25Okapi(tokenized_docs)
 
+
 def hybrid_search(query, k=5, bm25_weight=0.3):
     if not docs:
         return []
@@ -35,23 +36,24 @@ def hybrid_search(query, k=5, bm25_weight=0.3):
     query_embedding = model.encode([query])[0]
 
     semantic_results = collection.query(
-        query_embeddings=[query_embedding.tolist()],
-        n_results=k*2
+        query_embeddings=[query_embedding.tolist()], n_results=k * 2
     )
 
     bm25_scores = bm25.get_scores(query.lower().split())
-    bm25_top = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[:k*2]
+    bm25_top = sorted(
+        range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True
+    )[: k * 2]
 
     scores = {}
     for i, doc_id in enumerate(semantic_results["ids"][0]):
-        scores[doc_id] = (1 - bm25_weight) * (1 - i / (k*2))
+        scores[doc_id] = (1 - bm25_weight) * (1 - i / (k * 2))
 
     for rank, idx in enumerate(bm25_top):
         doc_id = ids[idx]
         if doc_id in scores:
-            scores[doc_id] += bm25_weight * (1 - rank / (k*2))
+            scores[doc_id] += bm25_weight * (1 - rank / (k * 2))
         else:
-            scores[doc_id] = bm25_weight * (1 - rank / (k*2))
+            scores[doc_id] = bm25_weight * (1 - rank / (k * 2))
 
     top_ids = sorted(scores, key=scores.get, reverse=True)[:k]
 
@@ -61,12 +63,14 @@ def hybrid_search(query, k=5, bm25_weight=0.3):
         full_metadata = metas[idx].copy()
         full_metadata["id"] = doc_id
         full_metadata["score"] = scores[doc_id]
-        
-        results.append({
-            "id": doc_id,
-            "content": docs[idx],
-            "metadata": full_metadata,
-            "score": scores[doc_id]
-        })
+
+        results.append(
+            {
+                "id": doc_id,
+                "content": docs[idx],
+                "metadata": full_metadata,
+                "score": scores[doc_id],
+            }
+        )
 
     return results

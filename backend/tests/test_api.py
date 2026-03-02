@@ -1,7 +1,6 @@
 import pytest
 
 
-
 @pytest.fixture
 def fake_user():
     return {"id": 1, "username": "testuser", "email": "test@cliniq.com", "role": "user"}
@@ -14,7 +13,12 @@ def fake_token():
 
 @pytest.fixture
 def fake_query():
-    return {"id": 1, "query_text": "Piqûre méduse ?", "response": "Rincer...", "user_id": 1}
+    return {
+        "id": 1,
+        "query_text": "Piqûre méduse ?",
+        "response": "Rincer...",
+        "user_id": 1,
+    }
 
 
 @pytest.fixture
@@ -23,7 +27,6 @@ def fake_queries_db():
         {"id": 1, "query_text": "Piqûre méduse", "response": "Rincer...", "user_id": 1},
         {"id": 2, "query_text": "Brûlure", "response": "Refroidir...", "user_id": 1},
     ]
-
 
 
 def test_register(fake_user, fake_token):
@@ -40,7 +43,6 @@ def test_register(fake_user, fake_token):
     assert "access_token" in result
 
 
-
 def test_login(fake_token):
     """Simulates POST /auth/login → returns token if credentials valid."""
     credentials_valid = True
@@ -51,13 +53,12 @@ def test_login(fake_token):
     assert "access_token" in result
 
 
-
 def test_save_query(fake_query):
     """Simulates POST /query/assistant → saves query and returns it."""
     saved = {
         "question": fake_query["query_text"],
         "answer": "Rincer à l'eau de mer.",
-        "db_id": fake_query["id"]
+        "db_id": fake_query["id"],
     }
 
     assert "question" in saved
@@ -66,14 +67,12 @@ def test_save_query(fake_query):
     assert saved["db_id"] == 1
 
 
-
 def test_get_queries(fake_queries_db):
     """Simulates GET /query/queries → returns list."""
     result = fake_queries_db
 
     assert isinstance(result, list)
     assert len(result) == 2
-
 
 
 def test_get_query_by_id(fake_queries_db):
@@ -89,7 +88,6 @@ def test_get_query_by_id(fake_queries_db):
     assert result["id"] == query_id
 
 
-
 def test_delete_query(fake_queries_db):
     """Simulates DELETE /query/queries/{id} → removes query."""
     query_id = 1
@@ -98,7 +96,3 @@ def test_delete_query(fake_queries_db):
     fake_queries_db[:] = [q for q in fake_queries_db if q["id"] != query_id]
 
     assert len(fake_queries_db) == initial_count - 1
-
-
-
-

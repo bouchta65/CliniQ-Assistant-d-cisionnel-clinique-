@@ -3,7 +3,11 @@ import json
 import mlflow
 
 # load ground-truth test cases
-with open(os.path.join(os.path.dirname(__file__), "../data/test_case.json"), "r", encoding="utf-8") as f:
+with open(
+    os.path.join(os.path.dirname(__file__), "../data/test_case.json"),
+    "r",
+    encoding="utf-8",
+) as f:
     TEST_CASES = json.load(f)
 
 TEST_CASE_INDEX = {}
@@ -11,9 +15,42 @@ for tc in TEST_CASES:
     TEST_CASE_INDEX[tc["query"]] = tc["relevant_docs"]
 
 # words to ignore when comparing text
-STOPWORDS = {"le", "la", "les", "de", "du", "des", "un", "une", "et", "en", "à", "au", "ou",
-             "que", "qui", "par", "sur", "il", "se", "ne", "si", "ce", "est", "sont", "avec",
-             "dans", "pour", "pas", "plus", "l", "d", "s", "y", "on"}
+STOPWORDS = {
+    "le",
+    "la",
+    "les",
+    "de",
+    "du",
+    "des",
+    "un",
+    "une",
+    "et",
+    "en",
+    "à",
+    "au",
+    "ou",
+    "que",
+    "qui",
+    "par",
+    "sur",
+    "il",
+    "se",
+    "ne",
+    "si",
+    "ce",
+    "est",
+    "sont",
+    "avec",
+    "dans",
+    "pour",
+    "pas",
+    "plus",
+    "l",
+    "d",
+    "s",
+    "y",
+    "on",
+}
 
 
 def get_keywords(text):
