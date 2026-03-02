@@ -1,0 +1,21 @@
+groups:
+  - name: mediassist_alerts
+    interval: 30s
+    rules:
+      - alert: APIDown
+        expr: up{job="mediassist-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API MediAssist est DOWN"
+          description: "L'API ne répond plus depuis 1 minute"
+
+      - alert: HighLatency
+        expr: http_request_duration_seconds > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence élevée détectée"
+          description: "Les requêtes prennent plus de 2 secondes"
