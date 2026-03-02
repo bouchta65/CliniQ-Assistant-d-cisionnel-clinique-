@@ -1,8 +1,10 @@
-import ollama
 import os
-import mlflow
+
+import ollama
 from app.rag.retriever import hybrid_search
 from app.services.evaluator import evaluate
+
+import mlflow
 
 mlflow.set_tracking_uri("http://mlflow:5000")
 mlflow.set_experiment("RAG_Pipeline")
@@ -14,18 +16,32 @@ LLM_CONFIG = {
     "temperature": 0.0,
     "top_p": 0.9,
     "top_k": 40,
-    "num_predict": 2000
+    "num_predict": 2000,
 }
 
 SYSTEM_PROMPT = """
-Tu es CliniQ, Tu dois répondre UNIQUEMENT avec les informations du CONTEXTE ci-dessous.
+Tu es un assistant médical basé sur un système RAG.
 
-RÈGLES ABSOLUES:
-1. COPIE INTÉGRALEMENT toutes les informations pertinentes du CONTEXTE
-2. NE RÉSUME PAS - donne TOUTES les informations disponibles
-3. NE JAMAIS ajouter d'informations qui ne sont pas dans le contexte
-4. NE JAMAIS utiliser tes connaissances générales
-5. Si plusieurs informations sont pertinentes, LISTE-LES TOUTES sans exception
+RÈGLE PRINCIPALE :
+Tu dois répondre uniquement si la question de l’utilisateur est liée au contexte médical fourni.
+
+1️⃣ Si la question est un simple message (ex: "bonjour", "salut", "merci") :
+→ Réponds naturellement et poliment, sans utiliser le contexte médical.
+
+2️⃣ Si la question est liée au contexte médical fourni :
+→ Commence toujours par :
+"Bonjour 👋, voici ce que j’ai trouvé pour vous :"
+
+→ Reformule les informations du contexte de manière claire, structurée et professionnelle.
+→ Intègre naturellement les informations.
+→ N’ajoute AUCUNE information qui ne figure pas dans le contexte.
+→ Ne fais aucune supposition.
+→ Ne réponds qu’avec les éléments explicitement présents dans le contexte.
+
+3️⃣ Si la question ne correspond PAS au contexte médical fourni :
+→ Réponds exactement :
+"Votre question est hors du contexte médical disponible. Je ne peux pas y répondre."
+
 6. Si l'information n'est PAS dans le contexte: "Cette information n'est pas disponible dans ma documentation."
 
 CONTEXTE (5 documents trouvés - utilise TOUS ceux qui sont pertinents):
@@ -34,20 +50,29 @@ CONTEXTE (5 documents trouvés - utilise TOUS ceux qui sont pertinents):
 Question: {question}
 La réponse doit être rédigée sous forme de texte fluide et naturel, comme si elle venait d’un assistant intelligent.
 
-Commence toujours par :
+RÈGLE PRINCIPALE :
+Tu dois répondre uniquement si la question de l’utilisateur est liée au contexte médical fourni.
+
+1️⃣ Si la question est un simple message (ex: "bonjour", "salut", "merci") :
+→ Réponds naturellement et poliment, sans utiliser le contexte médical.
+
+2️⃣ Si la question est liée au contexte médical fourni :
+→ Commence toujours par :
 "Bonjour 👋, voici ce que j’ai trouvé pour vous :"
 
-Ensuite :
+→ Reformule les informations du contexte de manière claire, structurée et professionnelle.
+→ Intègre naturellement les informations.
+→ N’ajoute AUCUNE information qui ne figure pas dans le contexte.
+→ Ne fais aucune supposition.
+→ Ne réponds qu’avec les éléments explicitement présents dans le contexte.
 
-Reformule les informations du contexte de manière claire et structurée.
+3️⃣ Si la question ne correspond PAS au contexte médical fourni :
+→ Réponds exactement :
+"Votre question est hors du contexte médical disponible. Je ne peux pas y répondre."
 
-Utilise un ton professionnel et amical.
+IMPORTANT :
+Ne force jamais une réponse médicale si la question ne concerne pas le contexte."""
 
-Intègre naturellement les informations au lieu de faire une simple liste brute.
-
-Ensuite, rédige uniquement les informations disponibles dans le contexte, en copiant ou reformulant strictement ce qui est écrit.
-
-⚠️ Ne jamais ajouter d’exemples, de causes possibles, ni de recommandations personnelles."""
 
 def generate(question: str, evaluate: bool = False, k: int = 5) -> str:
     chunks = hybrid_search(question, k) or []
@@ -60,15 +85,18 @@ def generate(question: str, evaluate: bool = False, k: int = 5) -> str:
     response = client.chat(
         model=LLM_CONFIG["model"],
         messages=[
-            {"role": "system", "content": "Tu es un assistant clinique strict basé sur RAG."},
-            {"role": "user", "content": full_prompt}
+            {
+                "role": "system",
+                "content": "Tu es un assistant clinique strict basé sur RAG.",
+            },
+            {"role": "user", "content": full_prompt},
         ],
         options={
             "temperature": LLM_CONFIG["temperature"],
             "top_p": LLM_CONFIG["top_p"],
             "top_k": LLM_CONFIG["top_k"],
-            "num_predict": LLM_CONFIG["num_predict"]
-        }
+            "num_predict": LLM_CONFIG["num_predict"],
+        },
     )
 
     answer = response["message"]["content"].replace("\n", " ")
@@ -87,5 +115,3 @@ def generate_and_evaluate(question: str, k: int = 5):
         metrics = evaluate(question, answer, chunks, k=k)
 
         return answer, metrics
-
-
