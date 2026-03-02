@@ -35,9 +35,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: |
-          pip install pytest
-          if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        run: pip install pytest
 
       - name: Run unit tests
         working-directory: backend
