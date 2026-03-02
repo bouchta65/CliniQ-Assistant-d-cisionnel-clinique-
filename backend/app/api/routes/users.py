@@ -1,7 +1,7 @@
+from app.core.database import get_db
+from app.services.user_service import delete_user, get_all_users, get_user_by_id
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.services.user_service import get_all_users, get_user_by_id, delete_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

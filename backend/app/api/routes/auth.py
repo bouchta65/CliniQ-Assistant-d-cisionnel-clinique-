@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, Header
-from app.core.exceptions import AppException
 import re
-from app.core.database import get_db
-from app.schemas.user import UserCreate, LoginRequest, Token, UserRead
-from sqlalchemy.orm import Session
-from app.services.user_service import Create_user, get_user_by_email, get_user_by_id
-from app.services.auth_service import authenticate_user
-from jose import jwt, JWTError
+
 from app.core.config import settings
+from app.core.database import get_db
+from app.core.exceptions import AppException
+from app.schemas.user import LoginRequest, Token, UserCreate
+from app.services.auth_service import authenticate_user
+from app.services.user_service import Create_user, get_user_by_email, get_user_by_id
+from fastapi import APIRouter, Depends, Header
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

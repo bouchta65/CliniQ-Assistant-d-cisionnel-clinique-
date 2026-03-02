@@ -1,6 +1,7 @@
-from llama_parse import LlamaParse
 import os
+
 from dotenv import load_dotenv
+from llama_parse import LlamaParse
 
 pdf_path = r"../data/guide-des-protocoles-699b8192dc98d654208814.pdf"
 md_output = r"../data/1_guide-des-protocoles.md"

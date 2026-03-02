@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.core.exceptions import AppException
 from app.schemas.query import QueryCreate
+from app.services.assistant_service import generate, generate_and_evaluate
 from app.services.query_service import (
     create_query,
-    get_all_query,
-    get_query_by_id,
     delete_query,
+    get_all_query,
     get_queries_by_user_id,
+    get_query_by_id,
 )
-from app.services.assistant_service import generate, generate_and_evaluate
-from app.core.exceptions import AppException
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/query", tags=["Query"])
 

@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, ForeignKey, Text, DateTime
 from datetime import datetime
+
 from app.core.database import Base
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 
 
 class Query(Base):

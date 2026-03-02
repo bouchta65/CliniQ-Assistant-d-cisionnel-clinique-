@@ -1,6 +1,5 @@
-from sqlalchemy.orm import Session
 from app.models.query import Query
-from app.schemas.query import QueryCreate
+from sqlalchemy.orm import Session
 
 
 def create_query(db: Session, query_text: str, response: str, user_id: int):

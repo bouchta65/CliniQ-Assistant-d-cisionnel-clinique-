@@ -1,15 +1,14 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import auth, query, users
-from app.core.database import engine, Base
+from app.core.database import Base, engine
 from app.core.exceptions import (
     AppException,
     app_exception_handler,
     global_exception_handler,
 )
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Gauge
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
 from starlette.responses import Response
-
 
 active_users = Gauge("active_users", "Number of active users")
 rag_pipeline_calls = Counter("rag_pipeline_calls_total", "Total RAG pipeline calls")

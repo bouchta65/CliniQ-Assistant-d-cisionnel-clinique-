@@ -1,6 +1,3 @@
-import pytest
-
-
 # ── Test 1 : Simulated retriever ───────────────────────────────────────────────
 
 

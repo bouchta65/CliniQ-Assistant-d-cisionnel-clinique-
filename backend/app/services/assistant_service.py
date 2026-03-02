@@ -1,8 +1,10 @@
-import ollama
 import os
-import mlflow
+
+import ollama
 from app.rag.retriever import hybrid_search
 from app.services.evaluator import evaluate
+
+import mlflow
 
 mlflow.set_tracking_uri("http://mlflow:5000")
 mlflow.set_experiment("RAG_Pipeline")

@@ -1,7 +1,8 @@
 import json
-import time
-import mlflow
 import os
+import time
+
+import mlflow
 
 md_file = os.path.join(os.path.dirname(__file__), "../../data/only_tables.md")
 json_output = os.path.join(os.path.dirname(__file__), "../../data/table_chunks.json")
@@ -45,8 +46,8 @@ with mlflow.start_run(run_name="table_chunking"):
         chunks = []
         buffer = ""
 
-        for l in lines[2:]:
-            buffer += l + "\n"
+        for line in lines[2:]:
+            buffer += line + "\n"
             if buffer.count("|") >= num_cols + 1:
                 cells = [
                     c.strip().replace("\n", " ")

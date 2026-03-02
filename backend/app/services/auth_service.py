@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
+from app.core.security import create_access_token, create_refresh_token, verify_password
 from app.models.user import Users
-from app.core.security import verify_password, create_access_token, create_refresh_token
+from sqlalchemy.orm import Session
 
 
 def authenticate_user(db: Session, email: str, password: str):

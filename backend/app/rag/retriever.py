@@ -1,7 +1,9 @@
-import chromadb
-from sentence_transformers import SentenceTransformer
-from rank_bm25 import BM25Okapi
 import os
+
+import chromadb
+from rank_bm25 import BM25Okapi
+from sentence_transformers import SentenceTransformer
+
 import mlflow
 
 mlflow.set_tracking_uri("http://mlflow:5000")

@@ -1,7 +1,8 @@
 import json
-import time
-import mlflow
 import os
+import time
+
+import mlflow
 
 md_file = os.path.join(os.path.dirname(__file__), "../../data/only_text.md")
 json_output = os.path.join(os.path.dirname(__file__), "../../data/text_chunks.json")

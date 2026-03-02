@@ -1,9 +1,11 @@
 import json
-import time
-import mlflow
-from sentence_transformers import SentenceTransformer
-import chromadb
 import os
+import time
+
+import chromadb
+from sentence_transformers import SentenceTransformer
+
+import mlflow
 
 mlflow.set_tracking_uri("http://mlflow:5000")
 mlflow.set_experiment("RAG_Indexing")
