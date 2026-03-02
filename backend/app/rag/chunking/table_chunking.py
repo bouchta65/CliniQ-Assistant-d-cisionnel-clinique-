@@ -26,7 +26,7 @@ with mlflow.start_run(run_name="table_chunking"):
     # ---------------------------
     # Load Markdown
     # ---------------------------
-    with open(md_file,"r",encoding="utf-8") as f:
+    with open(md_file, "r", encoding="utf-8") as f:
         text = f.read()
 
     def split_into_tables(text):
@@ -48,7 +48,10 @@ with mlflow.start_run(run_name="table_chunking"):
         for l in lines[2:]:
             buffer += l + "\n"
             if buffer.count("|") >= num_cols + 1:
-                cells = [c.strip().replace("\n"," ") for c in buffer.strip().strip("|").split("|")]
+                cells = [
+                    c.strip().replace("\n", " ")
+                    for c in buffer.strip().strip("|").split("|")
+                ]
                 row = {}
                 for i in range(num_cols):
                     row[header[i]] = cells[i] if i < len(cells) else ""
@@ -80,8 +83,8 @@ with mlflow.start_run(run_name="table_chunking"):
     # ---------------------------
     # Save JSON
     # ---------------------------
-    with open(json_output,"w",encoding="utf-8") as f:
-        json.dump(chunks,f,ensure_ascii=False,indent=2)
+    with open(json_output, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, ensure_ascii=False, indent=2)
 
     # ---------------------------
     # Log Dynamic Params
@@ -94,7 +97,7 @@ with mlflow.start_run(run_name="table_chunking"):
     # ---------------------------
     duration = time.time() - start_time
 
-    avg_columns = sum(column_counts)/len(column_counts) if column_counts else 0
+    avg_columns = sum(column_counts) / len(column_counts) if column_counts else 0
 
     mlflow.log_metric("avg_columns_per_table", avg_columns)
     mlflow.log_metric("chunking_duration_seconds", duration)

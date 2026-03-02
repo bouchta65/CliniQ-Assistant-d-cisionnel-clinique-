@@ -14,7 +14,7 @@ LLM_CONFIG = {
     "temperature": 0.0,
     "top_p": 0.9,
     "top_k": 40,
-    "num_predict": 2000
+    "num_predict": 2000,
 }
 
 SYSTEM_PROMPT = """
@@ -49,6 +49,7 @@ Ensuite, rédige uniquement les informations disponibles dans le contexte, en co
 
 ⚠️ Ne jamais ajouter d’exemples, de causes possibles, ni de recommandations personnelles."""
 
+
 def generate(question: str, evaluate: bool = False, k: int = 5) -> str:
     chunks = hybrid_search(question, k) or []
     retrieval_context = [c.get("content", "") for c in chunks]
@@ -60,15 +61,18 @@ def generate(question: str, evaluate: bool = False, k: int = 5) -> str:
     response = client.chat(
         model=LLM_CONFIG["model"],
         messages=[
-            {"role": "system", "content": "Tu es un assistant clinique strict basé sur RAG."},
-            {"role": "user", "content": full_prompt}
+            {
+                "role": "system",
+                "content": "Tu es un assistant clinique strict basé sur RAG.",
+            },
+            {"role": "user", "content": full_prompt},
         ],
         options={
             "temperature": LLM_CONFIG["temperature"],
             "top_p": LLM_CONFIG["top_p"],
             "top_k": LLM_CONFIG["top_k"],
-            "num_predict": LLM_CONFIG["num_predict"]
-        }
+            "num_predict": LLM_CONFIG["num_predict"],
+        },
     )
 
     answer = response["message"]["content"].replace("\n", " ")
@@ -87,5 +91,3 @@ def generate_and_evaluate(question: str, k: int = 5):
         metrics = evaluate(question, answer, chunks, k=k)
 
         return answer, metrics
-
-
