@@ -39,15 +39,19 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install pytest
+        run: |
+          pip install pytest
+          if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
 
       - name: Run unit tests
         working-directory: backend
         run: pytest tests/ -v
 
+
   build-push:
     needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
@@ -63,5 +67,6 @@ jobs:
           context: ./backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/cliniq-backend:latest
+
 
 
