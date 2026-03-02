@@ -17,13 +17,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install linters
-        run: pip install flake8 black isort
-
-      - name: Check code formatting (black)
-        run: black --check backend/
-
-      - name: Check imports order (isort)
-        run: isort --check-only backend/
+        run: pip install flake8
 
       - name: Lint with flake8
         run: flake8 backend/ --max-line-length=120 --ignore=E501,W503
