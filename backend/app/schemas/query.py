@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 
 class QueryCreate(BaseModel):
     query_text: str
-    user_id: int
 
 
 class QueryRead(BaseModel):

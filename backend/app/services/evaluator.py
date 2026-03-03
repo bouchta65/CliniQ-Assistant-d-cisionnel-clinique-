@@ -3,7 +3,6 @@ import os
 
 import mlflow
 
-# load ground-truth test cases
 with open(
     os.path.join(os.path.dirname(__file__), "../data/test_case.json"),
     "r",
@@ -15,7 +14,6 @@ TEST_CASE_INDEX = {}
 for tc in TEST_CASES:
     TEST_CASE_INDEX[tc["query"]] = tc["relevant_docs"]
 
-# words to ignore when comparing text
 STOPWORDS = {
     "le",
     "la",
@@ -68,8 +66,6 @@ def evaluate(question, answer, chunks, k=5):
     relevant_docs = TEST_CASE_INDEX.get(question.strip(), [])
     context = " ".join(c.get("content", "") for c in chunks)
 
-    # Precision@K and Recall@K
-    # a chunk is a "hit" if it shares at least 2 keywords with any relevant doc
     hits = 0
     for chunk in chunks:
         chunk_kw = get_keywords(chunk.get("content", ""))
@@ -81,18 +77,13 @@ def evaluate(question, answer, chunks, k=5):
     precision_at_k = round(hits / k, 4) if k > 0 else 0.0
     recall_at_k = round(hits / len(relevant_docs), 4) if len(relevant_docs) > 0 else 0.0
 
-    # Answer Relevance
-    # how many question keywords appear in the answer?
     q_kw = get_keywords(question)
     a_kw = get_keywords(answer)
     answer_relevance = round(len(q_kw & a_kw) / len(q_kw), 4) if len(q_kw) > 0 else 0.0
 
-    # Faithfulness
-    # how many answer keywords are supported by the context?
     ctx_kw = get_keywords(context)
     faithfulness = round(len(a_kw & ctx_kw) / len(a_kw), 4) if len(a_kw) > 0 else 0.0
 
-    # log to MLflow
     mlflow.log_metric("answer_relevance", answer_relevance)
     mlflow.log_metric("faithfulness", faithfulness)
     mlflow.log_metric("precision_at_k", precision_at_k)
