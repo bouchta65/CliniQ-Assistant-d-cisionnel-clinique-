@@ -12,7 +12,6 @@ from app.services.query_service import (
     get_queries_by_user_id,
     get_query_by_id,
 )
-from app.models.query import Query
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -20,7 +19,11 @@ router = APIRouter(prefix="/query", tags=["Query"])
 
 
 @router.post("/assistant")
-def query_root(query: QueryCreate,current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def query_root(
+    query: QueryCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         from app.main import rag_errors, rag_latency, rag_pipeline_calls
 
@@ -39,7 +42,11 @@ def query_root(query: QueryCreate,current_user: dict = Depends(get_current_user)
 
 
 @router.post("/assistant/evaluate")
-def query_evaluate(query: QueryCreate,current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def query_evaluate(
+    query: QueryCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     try:
         from app.main import (
             rag_answer_relevance,
@@ -75,49 +82,35 @@ def query_evaluate(query: QueryCreate,current_user: dict = Depends(get_current_u
 
 
 @router.get("/queries")
-def get_queries(current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def get_queries(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     return get_all_query(db)
 
 
 @router.get("/queries/{query_id}")
-def get_query(query_id: int,current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def get_query(
+    query_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     return get_query_by_id(db, query_id)
 
 
 @router.delete("/queries/{query_id}")
-def delete_query_by_id(query_id: int,current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def delete_query_by_id(
+    query_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     return delete_query(db, query_id)
 
 
 @router.get("/queries/user/{user_id}")
-def get_user_queries(user_id: int,current_user: dict = Depends(get_current_user),db: Session = Depends(get_db),):
+def get_user_queries(
+    user_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     return get_queries_by_user_id(db, user_id)
-
-
-
-
-
-
-
-
-
-
-@router.get("/queris")
-def get_queries(db:Session=Depends(get_db),current_user:dict =Depends(get_current_user)):
-    user = db.quer(User).filter(User.id == current_user.id)
-    
-    if not user:
-        return ("user not exi")
-    
-    
-    
-    return db.query(Query).filter(Query.user_id == current_user.id).all()
-
-
-
-client = testclient(app)
-
-def test_router():
-    response = clinet.get("/queris")
-    
-    assert response.status_code
