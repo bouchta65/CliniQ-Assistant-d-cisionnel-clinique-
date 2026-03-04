@@ -2,13 +2,11 @@ import streamlit as st
 import requests
 from datetime import datetime
 
-# API URLs
 API_BASE = "http://backend:8000"
 AUTH_URL = f"{API_BASE}/auth"
 QUERY_URL = f"{API_BASE}/query"
 USERS_URL = f"{API_BASE}/users"
 
-# Page config
 st.set_page_config(
     page_title="CliniQ - Assistant Médical",
     page_icon="🏥",
@@ -16,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -60,7 +57,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# Session state initialization
 if "token" not in st.session_state:
     st.session_state.token = None
 if "user" not in st.session_state:
@@ -71,6 +67,15 @@ def get_headers():
     if st.session_state.token:
         return {"Authorization": f"Bearer {st.session_state.token}"}
     return {}
+
+
+def get_error_message(res):
+    """Extract error message from backend response (handles both formats)."""
+    try:
+        data = res.json()
+        return data.get("detail") or data.get("error") or str(data)
+    except Exception:
+        return f"Erreur HTTP {res.status_code}"
 
 
 def login_page():
@@ -90,18 +95,23 @@ def login_page():
                 if not email or not password:
                     st.warning("Veuillez remplir tous les champs")
                 else:
-                    res = requests.post(f"{AUTH_URL}/login", json={"email": email, "password": password})
-                    if res.status_code == 200:
-                        data = res.json()
-                        st.session_state.token = data["access_token"]
-                        # Get user info
-                        user_res = requests.get(f"{AUTH_URL}/me", headers={"Authorization": f"Bearer {data['access_token']}"})
-                        if user_res.status_code == 200:
-                            st.session_state.user = user_res.json()
-                        st.success("Connexion réussie!")
-                        st.rerun()
-                    else:
-                        st.error(res.json().get("detail", "Email ou mot de passe incorrect"))
+                    try:
+                        res = requests.post(f"{AUTH_URL}/login", json={"email": email, "password": password})
+                        if res.status_code == 200:
+                            data = res.json()
+                            st.session_state.token = data["access_token"]
+                            user_res = requests.get(f"{AUTH_URL}/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+                            if user_res.status_code == 200:
+                                st.session_state.user = user_res.json()
+                                st.success("Connexion réussie!")
+                                st.rerun()
+                            else:
+                                st.session_state.token = None
+                                st.error(f"Erreur récupération profil: {get_error_message(user_res)}")
+                        else:
+                            st.error(get_error_message(res))
+                    except requests.exceptions.ConnectionError:
+                        st.error("Impossible de se connecter au serveur backend")
     
     with tab2:
         with st.form("register_form"):
@@ -117,22 +127,28 @@ def login_page():
                 if not username or not email or not password:
                     st.warning("Veuillez remplir tous les champs")
                 else:
-                    res = requests.post(f"{AUTH_URL}/register", json={
-                        "username": username,
-                        "email": email,
-                        "password": password,
-                        "role": role
-                    })
-                    if res.status_code == 200:
-                        data = res.json()
-                        st.session_state.token = data["access_token"]
-                        user_res = requests.get(f"{AUTH_URL}/me", headers={"Authorization": f"Bearer {data['access_token']}"})
-                        if user_res.status_code == 200:
-                            st.session_state.user = user_res.json()
-                        st.success("Compte créé avec succès!")
-                        st.rerun()
-                    else:
-                        st.error(res.json().get("detail", "Erreur lors de l'inscription"))
+                    try:
+                        res = requests.post(f"{AUTH_URL}/register", json={
+                            "username": username,
+                            "email": email,
+                            "password": password,
+                            "role": role
+                        })
+                        if res.status_code == 200:
+                            data = res.json()
+                            st.session_state.token = data["access_token"]
+                            user_res = requests.get(f"{AUTH_URL}/me", headers={"Authorization": f"Bearer {data['access_token']}"})
+                            if user_res.status_code == 200:
+                                st.session_state.user = user_res.json()
+                                st.success("Compte créé avec succès!")
+                                st.rerun()
+                            else:
+                                st.session_state.token = None
+                                st.error(f"Erreur récupération profil: {get_error_message(user_res)}")
+                        else:
+                            st.error(get_error_message(res))
+                    except requests.exceptions.ConnectionError:
+                        st.error("Impossible de se connecter au serveur backend")
 
 
 def assistant_page():
@@ -152,34 +168,42 @@ def assistant_page():
                 st.warning("Veuillez poser une question")
             else:
                 with st.spinner("Recherche en cours..."):
-                    endpoint = "/assistant/evaluate" if evaluate else "/assistant"
-                    res = requests.post(
-                        f"{QUERY_URL}{endpoint}",
-                        json={"query_text": question, "user_id": st.session_state.user["id"]}
-                    )
-                    
-                    if res.status_code == 200:
-                        data = res.json()
-                        st.markdown("### 💬 Réponse")
-                        st.markdown(f'<div class="answer-box">{data["answer"]}</div>', unsafe_allow_html=True)
+                    try:
+                        endpoint = "/assistant/evaluate" if evaluate else "/assistant"
+                        res = requests.post(
+                            f"{QUERY_URL}{endpoint}",
+                            json={"query_text": question},
+                            headers=get_headers()
+                        )
                         
-                        if evaluate and "metrics" in data:
-                            st.markdown("### 📊 Métriques d'évaluation RAG")
-                            m = data["metrics"]
-                            col1, col2, col3, col4 = st.columns(4)
-                            col1.metric("Answer Relevance", f"{m['answer_relevance']:.2%}")
-                            col2.metric("Faithfulness", f"{m['faithfulness']:.2%}")
-                            col3.metric("Precision@K", f"{m['precision_at_k']:.2%}")
-                            col4.metric("Recall@K", f"{m['recall_at_k']:.2%}")
-                    else:
-                        st.error("Erreur lors de la recherche")
+                        if res.status_code == 200:
+                            data = res.json()
+                            st.markdown("### 💬 Réponse")
+                            st.markdown(f'<div class="answer-box">{data["answer"]}</div>', unsafe_allow_html=True)
+                            
+                            if evaluate and "metrics" in data:
+                                st.markdown("### 📊 Métriques d'évaluation RAG")
+                                m = data["metrics"]
+                                col1, col2, col3, col4 = st.columns(4)
+                                col1.metric("Answer Relevance", f"{m['answer_relevance']:.2%}")
+                                col2.metric("Faithfulness", f"{m['faithfulness']:.2%}")
+                                col3.metric("Precision@K", f"{m['precision_at_k']:.2%}")
+                                col4.metric("Recall@K", f"{m['recall_at_k']:.2%}")
+                        else:
+                            st.error(f"Erreur: {get_error_message(res)}")
+                    except requests.exceptions.ConnectionError:
+                        st.error("Impossible de se connecter au serveur backend")
 
 
 def my_queries_page():
     st.markdown("## 📋 Mon Historique")
     
     user_id = st.session_state.user["id"]
-    res = requests.get(f"{QUERY_URL}/queries/user/{user_id}")
+    try:
+        res = requests.get(f"{QUERY_URL}/queries/user/{user_id}", headers=get_headers())
+    except requests.exceptions.ConnectionError:
+        st.error("Impossible de se connecter au serveur backend")
+        return
     
     if res.status_code == 200:
         queries = res.json()
@@ -201,20 +225,24 @@ def my_queries_page():
                             st.caption(f"📅 {q['created_at']}")
                     with col2:
                         if st.button("🗑️ Supprimer", key=f"del_{q['id']}"):
-                            del_res = requests.delete(f"{QUERY_URL}/queries/{q['id']}")
+                            del_res = requests.delete(f"{QUERY_URL}/queries/{q['id']}", headers=get_headers())
                             if del_res.status_code == 200:
                                 st.success("Requête supprimée!")
                                 st.rerun()
                             else:
-                                st.error("Erreur lors de la suppression")
+                                st.error(f"Erreur: {get_error_message(del_res)}")
     else:
-        st.error("Erreur lors du chargement des requêtes")
+        st.error(f"Erreur: {get_error_message(res)}")
 
 
 def admin_users_page():
     st.markdown("## 👥 Gestion des Utilisateurs")
     
-    res = requests.get(f"{USERS_URL}/")
+    try:
+        res = requests.get(f"{USERS_URL}/", headers=get_headers())
+    except requests.exceptions.ConnectionError:
+        st.error("Impossible de se connecter au serveur backend")
+        return
     
     if res.status_code == 200:
         users = res.json()
@@ -231,26 +259,31 @@ def admin_users_page():
                 with col5:
                     if user['id'] != st.session_state.user['id']:
                         if st.button("🗑️", key=f"del_user_{user['id']}"):
-                            del_res = requests.delete(f"{USERS_URL}/{user['id']}")
+                            del_res = requests.delete(f"{USERS_URL}/{user['id']}", headers=get_headers())
                             if del_res.status_code == 200:
                                 st.success("Utilisateur supprimé!")
                                 st.rerun()
+                            else:
+                                st.error(f"Erreur: {get_error_message(del_res)}")
                 st.divider()
     else:
-        st.error("Erreur lors du chargement des utilisateurs")
+        st.error(f"Erreur: {get_error_message(res)}")
 
 
 def admin_queries_page():
     st.markdown("## 📊 Toutes les Requêtes")
     
-    res = requests.get(f"{QUERY_URL}/queries")
+    try:
+        res = requests.get(f"{QUERY_URL}/queries", headers=get_headers())
+    except requests.exceptions.ConnectionError:
+        st.error("Impossible de se connecter au serveur backend")
+        return
     
     if res.status_code == 200:
         queries = res.json()
         
         st.markdown(f"**{len(queries)} requête(s) au total**")
         
-        # Filter options
         col1, col2 = st.columns(2)
         with col1:
             search = st.text_input("🔍 Rechercher", placeholder="Filtrer par mot-clé...")
@@ -273,23 +306,23 @@ def admin_queries_page():
                         st.caption(f"📅 {q['created_at']}")
                 with col3:
                     if st.button("🗑️ Supprimer", key=f"admin_del_{q['id']}"):
-                        del_res = requests.delete(f"{QUERY_URL}/queries/{q['id']}")
+                        del_res = requests.delete(f"{QUERY_URL}/queries/{q['id']}", headers=get_headers())
                         if del_res.status_code == 200:
                             st.success("Requête supprimée!")
                             st.rerun()
+                        else:
+                            st.error(f"Erreur: {get_error_message(del_res)}")
     else:
-        st.error("Erreur lors du chargement")
+        st.error(f"Erreur: {get_error_message(res)}")
 
 
 def main_app():
-    # Sidebar
     with st.sidebar:
         st.markdown(f"### 👤 {st.session_state.user['username']}")
         st.caption(f"📧 {st.session_state.user['email']}")
         st.caption(f"🏷️ Rôle: {st.session_state.user['role']}")
         st.divider()
         
-        # Navigation
         pages = ["🤖 Assistant", "📋 Mon Historique"]
         
         if st.session_state.user['role'] == 'admin':
@@ -303,7 +336,6 @@ def main_app():
             st.session_state.user = None
             st.rerun()
     
-    # Main content
     st.markdown('<div class="main-header">🏥 CliniQ</div>', unsafe_allow_html=True)
     
     if page == "🤖 Assistant":
@@ -316,7 +348,6 @@ def main_app():
         admin_queries_page()
 
 
-# Main
 if st.session_state.token and st.session_state.user:
     main_app()
 else:

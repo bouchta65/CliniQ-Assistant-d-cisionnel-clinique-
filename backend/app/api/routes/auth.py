@@ -1,13 +1,12 @@
 import re
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.exceptions import AppException
+from app.core.security import get_current_user
 from app.schemas.user import LoginRequest, Token, UserCreate
 from app.services.auth_service import authenticate_user
 from app.services.user_service import Create_user, get_user_by_email, get_user_by_id
-from fastapi import APIRouter, Depends, Header
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -44,26 +43,14 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me")
-def read_users_me(authorization: str = Header(None), db: Session = Depends(get_db)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise AppException("Token manquant")
-    token = authorization.split(" ")[1]
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        user_id = payload.get("sub")
-        if not user_id:
-            raise AppException("Token invalide")
-        user = get_user_by_id(db, int(user_id))
-        if not user:
-            raise AppException("Utilisateur non trouvé")
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-            "created_at": str(user.created_at),
-        }
-    except JWTError:
-        raise AppException("Token invalide ou expiré")
+def read_users_me(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    user = get_user_by_id(db, current_user["id"])
+    if not user:
+        raise AppException("Utilisateur non trouvé")
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "created_at": str(user.created_at),
+    }

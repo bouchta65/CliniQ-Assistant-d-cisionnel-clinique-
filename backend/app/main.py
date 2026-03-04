@@ -5,16 +5,29 @@ from app.core.exceptions import (
     app_exception_handler,
     global_exception_handler,
 )
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from starlette.responses import Response
 
-active_users = Gauge("active_users", "Number of active users")
 rag_pipeline_calls = Counter("rag_pipeline_calls_total", "Total RAG pipeline calls")
 http_requests_total = Counter(
     "http_requests_total", "Total HTTP requests", ["method", "endpoint"]
 )
+rag_latency = Histogram(
+    "rag_latency_seconds",
+    "RAG pipeline response latency in seconds",
+    buckets=[0.5, 1, 2, 5, 10, 30, 60, 120],
+)
+rag_errors = Counter("rag_errors_total", "Total RAG pipeline errors")
+rag_answer_relevance = Gauge("rag_answer_relevance", "Last RAG answer relevance score")
+rag_faithfulness = Gauge("rag_faithfulness", "Last RAG faithfulness score")
 
 app = FastAPI(title="CliniQ API")
 
@@ -25,6 +38,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def track_requests(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path != "/metrics":
+        http_requests_total.labels(method=request.method, endpoint=request.url.path).inc()
+    return response
+
 
 app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
