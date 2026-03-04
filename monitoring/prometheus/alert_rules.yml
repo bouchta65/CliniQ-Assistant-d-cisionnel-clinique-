@@ -1,21 +1,18 @@
 groups:
-  - name: mediassist_alerts
-    interval: 30s
+  - name: cliniq_alerts
     rules:
       - alert: APIDown
-        expr: up{job="mediassist-api"} == 0
+        expr: up{job="fastapi"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "API MediAssist est DOWN"
-          description: "L'API ne répond plus depuis 1 minute"
+          summary: "CliniQ API is DOWN"
 
-      - alert: HighLatency
-        expr: http_request_duration_seconds > 2
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name=~"cliniq.*"}[5m]) * 100 > 80
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Latence élevée détectée"
-          description: "Les requêtes prennent plus de 2 secondes"
+          summary: "High CPU on {{ $labels.name }}"
